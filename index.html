@@ -1,0 +1,1886 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Agent Loft — Admin</title>
+        <style>
+            /* ─── Reset & Base ──────────────────────────────────────────── */
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            :root {
+                --bg: #0f1117;
+                --bg-card: #1a1d27;
+                --bg-hover: #22263a;
+                --bg-input: #12151f;
+                --border: #2a2f45;
+                --accent: #4f8ef7;
+                --accent-dim: #2a4a8a;
+                --danger: #e05252;
+                --danger-dim: #5a1f1f;
+                --success: #3fc97e;
+                --warning: #f0a04b;
+                --text: #e4e8f5;
+                --text-muted: #7a82a0;
+                --sidebar-w: 230px;
+                --header-h: 54px;
+                --radius: 8px;
+                --shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+            }
+
+            html,
+            body {
+                height: 100%;
+                font-family: "Segoe UI", system-ui, sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                font-size: 14px;
+            }
+
+            /* ─── Layout ────────────────────────────────────────────────── */
+            .layout {
+                display: flex;
+                height: 100vh;
+                overflow: hidden;
+            }
+
+            /* ─── Sidebar ───────────────────────────────────────────────── */
+            .sidebar {
+                width: var(--sidebar-w);
+                background: var(--bg-card);
+                border-right: 1px solid var(--border);
+                display: flex;
+                flex-direction: column;
+                flex-shrink: 0;
+                overflow-y: auto;
+            }
+
+            .sidebar-brand {
+                height: var(--header-h);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 0 18px;
+                border-bottom: 1px solid var(--border);
+                font-weight: 700;
+                font-size: 15px;
+                letter-spacing: 0.3px;
+                color: var(--accent);
+                flex-shrink: 0;
+            }
+            .sidebar-brand svg {
+                flex-shrink: 0;
+            }
+
+            .sidebar-section-label {
+                padding: 18px 18px 6px;
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: var(--text-muted);
+                font-weight: 600;
+            }
+
+            .nav-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 9px 18px;
+                cursor: pointer;
+                border-radius: 0;
+                color: var(--text-muted);
+                transition:
+                    background 0.15s,
+                    color 0.15s;
+                user-select: none;
+                border-left: 3px solid transparent;
+            }
+            .nav-item:hover {
+                background: var(--bg-hover);
+                color: var(--text);
+            }
+            .nav-item.active {
+                background: var(--bg-hover);
+                color: var(--accent);
+                border-left-color: var(--accent);
+            }
+            .nav-item svg {
+                flex-shrink: 0;
+            }
+
+            .sidebar-footer {
+                margin-top: auto;
+                padding: 14px 18px;
+                border-top: 1px solid var(--border);
+            }
+            .sidebar-footer .nav-item {
+                padding: 9px 0;
+                border-left: none;
+            }
+
+            /* ─── Main ──────────────────────────────────────────────────── */
+            .main {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .topbar {
+                height: var(--header-h);
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 28px;
+                flex-shrink: 0;
+                gap: 14px;
+            }
+            .topbar-title {
+                font-size: 16px;
+                font-weight: 600;
+            }
+            .topbar-actions {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .content {
+                flex: 1;
+                overflow-y: auto;
+                padding: 28px;
+            }
+
+            /* ─── Section visibility ────────────────────────────────────── */
+            .section {
+                display: none;
+            }
+            .section.active {
+                display: block;
+            }
+
+            /* ─── Cards ─────────────────────────────────────────────────── */
+            .card {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 20px 24px;
+                margin-bottom: 20px;
+            }
+            .card-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 18px;
+                gap: 12px;
+                flex-wrap: wrap;
+            }
+            .card-title {
+                font-size: 15px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            /* ─── Buttons ───────────────────────────────────────────────── */
+            .btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 7px 14px;
+                border-radius: 6px;
+                border: none;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 500;
+                transition:
+                    opacity 0.15s,
+                    background 0.15s;
+                white-space: nowrap;
+            }
+            .btn:hover {
+                opacity: 0.85;
+            }
+            .btn:active {
+                opacity: 0.7;
+            }
+            .btn-primary {
+                background: var(--accent);
+                color: #fff;
+            }
+            .btn-danger {
+                background: var(--danger);
+                color: #fff;
+            }
+            .btn-ghost {
+                background: var(--bg-hover);
+                color: var(--text);
+                border: 1px solid var(--border);
+            }
+            .btn-success {
+                background: var(--success);
+                color: #000;
+            }
+            .btn-sm {
+                padding: 4px 10px;
+                font-size: 12px;
+            }
+            .btn:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+            }
+
+            /* ─── Inputs ────────────────────────────────────────────────── */
+            .form-row {
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+                align-items: flex-end;
+            }
+            .form-group {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                flex: 1;
+                min-width: 130px;
+            }
+            .form-group label {
+                font-size: 12px;
+                color: var(--text-muted);
+                font-weight: 500;
+            }
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                background: var(--bg-input);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                color: var(--text);
+                padding: 8px 10px;
+                font-size: 13px;
+                outline: none;
+                transition: border-color 0.15s;
+                width: 100%;
+            }
+            .form-group input:focus,
+            .form-group select:focus,
+            .form-group textarea:focus {
+                border-color: var(--accent);
+            }
+            .form-group select option {
+                background: var(--bg-card);
+            }
+
+            /* ─── Table ─────────────────────────────────────────────────── */
+            .table-wrap {
+                overflow-x: auto;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            thead tr {
+                border-bottom: 2px solid var(--border);
+            }
+            tbody tr {
+                border-bottom: 1px solid var(--border);
+                transition: background 0.1s;
+            }
+            tbody tr:hover {
+                background: var(--bg-hover);
+            }
+            th {
+                padding: 9px 12px;
+                text-align: left;
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 0.07em;
+                color: var(--text-muted);
+                white-space: nowrap;
+            }
+            td {
+                padding: 11px 12px;
+                vertical-align: middle;
+            }
+            td:last-child {
+                white-space: nowrap;
+            }
+
+            .badge {
+                display: inline-block;
+                padding: 2px 8px;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            .badge-a {
+                background: #1a3a5c;
+                color: #5fb3f5;
+            }
+            .badge-aaaa {
+                background: #1a2f4c;
+                color: #8ac8f8;
+            }
+            .badge-cname {
+                background: #2a1f4a;
+                color: #a888f8;
+            }
+            .badge-mx {
+                background: #1f3a2a;
+                color: #5fd89a;
+            }
+            .badge-txt {
+                background: #3a2a1a;
+                color: #f0b060;
+            }
+            .badge-ns {
+                background: #3a1a2a;
+                color: #f080b0;
+            }
+            .badge-other {
+                background: #2a2a2a;
+                color: #9090a0;
+            }
+
+            .status-dot {
+                display: inline-block;
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+                margin-right: 5px;
+            }
+            .dot-enabled {
+                background: var(--success);
+            }
+            .dot-disabled {
+                background: var(--danger);
+            }
+
+            /* ─── Toast ─────────────────────────────────────────────────── */
+            #toast-container {
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                z-index: 9999;
+            }
+            .toast {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-left: 4px solid var(--accent);
+                border-radius: var(--radius);
+                padding: 12px 18px;
+                min-width: 260px;
+                max-width: 380px;
+                box-shadow: var(--shadow);
+                animation: slideIn 0.2s ease;
+                font-size: 13px;
+            }
+            .toast.toast-error {
+                border-left-color: var(--danger);
+            }
+            .toast.toast-success {
+                border-left-color: var(--success);
+            }
+            .toast.toast-warning {
+                border-left-color: var(--warning);
+            }
+            @keyframes slideIn {
+                from {
+                    transform: translateX(60px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            /* ─── Modal ─────────────────────────────────────────────────── */
+            .modal-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.6);
+                z-index: 1000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s;
+            }
+            .modal-backdrop.open {
+                opacity: 1;
+                pointer-events: all;
+            }
+            .modal {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                width: 100%;
+                max-width: 500px;
+                box-shadow: var(--shadow);
+                transform: translateY(20px);
+                transition: transform 0.2s;
+            }
+            .modal-backdrop.open .modal {
+                transform: translateY(0);
+            }
+            .modal-header {
+                padding: 18px 22px 16px;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .modal-title {
+                font-size: 15px;
+                font-weight: 600;
+            }
+            .modal-close {
+                background: none;
+                border: none;
+                cursor: pointer;
+                color: var(--text-muted);
+                font-size: 20px;
+                line-height: 1;
+                padding: 2px 6px;
+                border-radius: 4px;
+            }
+            .modal-close:hover {
+                background: var(--bg-hover);
+                color: var(--text);
+            }
+            .modal-body {
+                padding: 22px;
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+            }
+            .modal-footer {
+                padding: 14px 22px;
+                border-top: 1px solid var(--border);
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+            }
+
+            /* ─── Confirm dialog ────────────────────────────────────────── */
+            #confirm-backdrop .modal {
+                max-width: 380px;
+            }
+
+            /* ─── Login modal ───────────────────────────────────────────── */
+            #login-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.75);
+                z-index: 2000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                backdrop-filter: blur(4px);
+            }
+            #login-backdrop.hidden {
+                display: none;
+            }
+            #login-modal {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                width: 100%;
+                max-width: 360px;
+                box-shadow: var(--shadow);
+            }
+            .login-logo {
+                text-align: center;
+                padding: 28px 22px 6px;
+            }
+            .login-logo svg {
+                color: var(--accent);
+            }
+            .login-logo h2 {
+                margin-top: 10px;
+                font-size: 17px;
+                font-weight: 700;
+                color: var(--accent);
+            }
+            .login-logo p {
+                margin-top: 4px;
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+            #login-error {
+                margin: 0 22px;
+                padding: 8px 12px;
+                background: var(--danger-dim);
+                border: 1px solid var(--danger);
+                border-radius: 6px;
+                font-size: 12px;
+                color: var(--danger);
+                display: none;
+            }
+
+            /* ─── Settings ──────────────────────────────────────────────── */
+            .settings-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+            }
+            @media (max-width: 600px) {
+                .settings-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            /* ─── Empty state ───────────────────────────────────────────── */
+            .empty-state {
+                text-align: center;
+                padding: 48px 20px;
+                color: var(--text-muted);
+            }
+            .empty-state svg {
+                margin-bottom: 14px;
+                opacity: 0.4;
+            }
+            .empty-state p {
+                font-size: 14px;
+            }
+
+            /* ─── Spinner ───────────────────────────────────────────────── */
+            .spinner {
+                width: 18px;
+                height: 18px;
+                border: 2px solid var(--border);
+                border-top-color: var(--accent);
+                border-radius: 50%;
+                animation: spin 0.6s linear infinite;
+                display: inline-block;
+            }
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            /* ─── Misc ──────────────────────────────────────────────────── */
+            .flex-gap {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .mono {
+                font-family: "Cascadia Code", "Fira Code", monospace;
+                font-size: 12px;
+            }
+            .text-muted {
+                color: var(--text-muted);
+            }
+            hr.sep {
+                border: none;
+                border-top: 1px solid var(--border);
+                margin: 10px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="layout">
+            <!-- ═══ SIDEBAR ════════════════════════════════════════════════ -->
+            <nav class="sidebar">
+                <div class="sidebar-brand">
+                    <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <rect x="2" y="3" width="20" height="14" rx="2" />
+                        <path d="M8 21h8M12 17v4" />
+                    </svg>
+                    Agent Loft
+                </div>
+
+                <div class="sidebar-section-label">Network</div>
+                <div class="nav-item active" data-section="dns">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <ellipse cx="12" cy="5" rx="9" ry="3" />
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                        <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
+                    </svg>
+                    DNS Records
+                </div>
+                <div class="nav-item" data-section="coming-soon-firewall">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                    Firewall
+                </div>
+
+                <div class="sidebar-section-label">Infrastructure</div>
+                <div class="nav-item" data-section="coming-soon-servers">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <rect x="2" y="2" width="20" height="8" rx="2" />
+                        <rect x="2" y="14" width="20" height="8" rx="2" />
+                        <line x1="6" y1="6" x2="6.01" y2="6" />
+                        <line x1="6" y1="18" x2="6.01" y2="18" />
+                    </svg>
+                    Servers
+                </div>
+                <div class="nav-item" data-section="coming-soon-ssl">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <rect x="3" y="11" width="18" height="11" rx="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    SSL / TLS
+                </div>
+
+                <div class="sidebar-footer">
+                    <div
+                        class="nav-item"
+                        id="sidebar-user"
+                        style="
+                            cursor: default;
+                            gap: 8px;
+                            padding: 9px 18px;
+                            border-left: none;
+                            color: var(--text-muted);
+                            font-size: 12px;
+                        "
+                    >
+                        <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
+                            />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        <span id="sidebar-username">Not signed in</span>
+                    </div>
+                    <div class="nav-item" data-section="settings">
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <circle cx="12" cy="12" r="3" />
+                            <path
+                                d="M19.07 4.93a10 10 0 0 0-14.14 0M4.93 19.07a10 10 0 0 0 14.14 0M12 2v2M12 20v2M2 12h2M20 12h2"
+                            />
+                        </svg>
+                        Settings
+                    </div>
+                    <div
+                        class="nav-item"
+                        onclick="authLogout()"
+                        style="
+                            color: var(--danger);
+                            border-left: none;
+                            padding: 9px 0;
+                        "
+                    >
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        Sign Out
+                    </div>
+                </div>
+            </nav>
+
+            <!-- ═══ MAIN ════════════════════════════════════════════════════ -->
+            <div class="main">
+                <!-- Top bar -->
+                <div class="topbar">
+                    <span class="topbar-title" id="page-title"
+                        >DNS Records</span
+                    >
+                    <div class="topbar-actions" id="topbar-actions">
+                        <button
+                            class="btn btn-ghost btn-sm"
+                            id="btn-refresh"
+                            onclick="dnsLoadRecords()"
+                        >
+                            <svg
+                                width="13"
+                                height="13"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="M23 4v6h-6" />
+                                <path d="M1 20v-6h6" />
+                                <path
+                                    d="M3.51 9a9 9 0 0 1 14.36-3.36L23 10M1 14l5.13 4.36A9 9 0 0 0 20.49 15"
+                                />
+                            </svg>
+                            Refresh
+                        </button>
+                        <button
+                            class="btn btn-primary btn-sm"
+                            onclick="dnsOpenCreate()"
+                        >
+                            <svg
+                                width="13"
+                                height="13"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            New Record
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="content">
+                    <!-- ─── DNS Section ───────────────────────────────────────── -->
+                    <div class="section active" id="section-dns">
+                        <!-- Filter / search bar -->
+                        <div
+                            class="card"
+                            style="padding: 14px 20px; margin-bottom: 16px"
+                        >
+                            <div
+                                class="form-row"
+                                style="
+                                    flex-wrap: nowrap;
+                                    gap: 10px;
+                                    align-items: center;
+                                "
+                            >
+                                <div
+                                    class="form-group"
+                                    style="flex: 2; min-width: 140px"
+                                >
+                                    <input
+                                        type="text"
+                                        id="dns-search"
+                                        placeholder="Search by name or content…"
+                                        oninput="dnsRender()"
+                                    />
+                                </div>
+                                <div
+                                    class="form-group"
+                                    style="flex: 1; min-width: 110px"
+                                >
+                                    <select
+                                        id="dns-filter-type"
+                                        onchange="dnsRender()"
+                                    >
+                                        <option value="">All types</option>
+                                        <option>A</option>
+                                        <option>AAAA</option>
+                                        <option>CNAME</option>
+                                        <option>MX</option>
+                                        <option>TXT</option>
+                                        <option>NS</option>
+                                        <option>SRV</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <ellipse cx="12" cy="5" rx="9" ry="3" />
+                                        <path
+                                            d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"
+                                        />
+                                        <path
+                                            d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"
+                                        />
+                                    </svg>
+                                    Records
+                                </span>
+                                <span
+                                    id="dns-record-count"
+                                    class="text-muted"
+                                    style="font-size: 12px"
+                                ></span>
+                            </div>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Type</th>
+                                            <th>Content</th>
+                                            <th>TTL</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dns-table-body">
+                                        <tr>
+                                            <td colspan="6">
+                                                <div class="empty-state">
+                                                    <div class="spinner"></div>
+                                                    <p style="margin-top: 12px">
+                                                        Loading records…
+                                                    </p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ─── Settings Section ──────────────────────────────────── -->
+                    <div class="section" id="section-settings">
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">API Connection</span>
+                            </div>
+                            <div class="settings-grid">
+                                <div
+                                    class="form-group"
+                                    style="grid-column: 1/-1"
+                                >
+                                    <label>Webhook Base URL</label>
+                                    <input
+                                        type="text"
+                                        id="setting-url"
+                                        placeholder="https://…"
+                                    />
+                                </div>
+                            </div>
+                            <div style="margin-top: 16px">
+                                <button
+                                    class="btn btn-primary"
+                                    onclick="settingsSave()"
+                                >
+                                    Save URL
+                                </button>
+                                <button
+                                    class="btn btn-ghost"
+                                    onclick="settingsTest()"
+                                    style="margin-left: 8px"
+                                >
+                                    Test Connection
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title"
+                                    >Basic Auth Credentials</span
+                                >
+                            </div>
+                            <p
+                                style="
+                                    font-size: 13px;
+                                    color: var(--text-muted);
+                                    margin-bottom: 16px;
+                                "
+                            >
+                                Change your stored login credentials. Leave
+                                blank to keep the current values.
+                            </p>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Username</label>
+                                    <input
+                                        type="text"
+                                        id="setting-username"
+                                        autocomplete="username"
+                                        placeholder="Current: ••••"
+                                    />
+                                </div>
+                                <div class="form-group">
+                                    <label>Password</label>
+                                    <input
+                                        type="password"
+                                        id="setting-password"
+                                        autocomplete="new-password"
+                                        placeholder="New password"
+                                    />
+                                </div>
+                            </div>
+                            <div style="margin-top: 16px">
+                                <button
+                                    class="btn btn-primary"
+                                    onclick="settingsUpdateCredentials()"
+                                >
+                                    Update Credentials
+                                </button>
+                                <button
+                                    class="btn btn-danger"
+                                    onclick="authLogout()"
+                                    style="margin-left: 8px"
+                                >
+                                    Sign Out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ─── Coming-soon placeholder ──────────────────────────── -->
+                    <div class="section" id="section-coming-soon-firewall">
+                        <div class="card">
+                            <div class="empty-state">
+                                <svg
+                                    width="48"
+                                    height="48"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path
+                                        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                                    />
+                                </svg>
+                                <p>Firewall management — coming soon</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section" id="section-coming-soon-servers">
+                        <div class="card">
+                            <div class="empty-state">
+                                <svg
+                                    width="48"
+                                    height="48"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <rect
+                                        x="2"
+                                        y="2"
+                                        width="20"
+                                        height="8"
+                                        rx="2"
+                                    />
+                                    <rect
+                                        x="2"
+                                        y="14"
+                                        width="20"
+                                        height="8"
+                                        rx="2"
+                                    />
+                                    <line x1="6" y1="6" x2="6.01" y2="6" />
+                                    <line x1="6" y1="18" x2="6.01" y2="18" />
+                                </svg>
+                                <p>Server management — coming soon</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section" id="section-coming-soon-ssl">
+                        <div class="card">
+                            <div class="empty-state">
+                                <svg
+                                    width="48"
+                                    height="48"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <rect
+                                        x="3"
+                                        y="11"
+                                        width="18"
+                                        height="11"
+                                        rx="2"
+                                    />
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </svg>
+                                <p>SSL / TLS management — coming soon</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- /content -->
+            </div>
+            <!-- /main -->
+        </div>
+        <!-- /layout -->
+
+        <!-- ═══ DNS CREATE / EDIT MODAL ════════════════════════════════════ -->
+        <div class="modal-backdrop" id="dns-modal-backdrop">
+            <div
+                class="modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="dns-modal-title"
+            >
+                <div class="modal-header">
+                    <span class="modal-title" id="dns-modal-title"
+                        >New DNS Record</span
+                    >
+                    <button
+                        class="modal-close"
+                        onclick="dnsCloseModal()"
+                        aria-label="Close"
+                    >
+                        &#x2715;
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="dns-modal-mode" value="create" />
+                    <input type="hidden" id="dns-modal-orig-name" />
+                    <input type="hidden" id="dns-modal-orig-type" />
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2">
+                            <label
+                                >Name
+                                <span style="color: var(--text-muted)"
+                                    >(e.g. www, @, subdomain)</span
+                                ></label
+                            >
+                            <input
+                                type="text"
+                                id="dns-modal-name"
+                                placeholder="@"
+                            />
+                        </div>
+                        <div
+                            class="form-group"
+                            style="flex: 1; min-width: 100px"
+                        >
+                            <label>Type</label>
+                            <select id="dns-modal-type">
+                                <option>A</option>
+                                <option>AAAA</option>
+                                <option>CNAME</option>
+                                <option>MX</option>
+                                <option>TXT</option>
+                                <option>NS</option>
+                                <option>SRV</option>
+                                <option>CAA</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Content</label>
+                        <input
+                            type="text"
+                            id="dns-modal-content"
+                            placeholder="e.g. 192.168.1.1 or target.domain.com."
+                        />
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>TTL (seconds)</label>
+                            <input
+                                type="number"
+                                id="dns-modal-ttl"
+                                value="3600"
+                                min="60"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="dns-modal-disabled">
+                                <option value="false">Enabled</option>
+                                <option value="true">Disabled</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-ghost" onclick="dnsCloseModal()">
+                        Cancel
+                    </button>
+                    <button
+                        class="btn btn-primary"
+                        id="dns-modal-submit"
+                        onclick="dnsSubmitModal()"
+                    >
+                        <svg
+                            width="13"
+                            height="13"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Save Record
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ CONFIRM DIALOG ══════════════════════════════════════════════ -->
+        <div class="modal-backdrop" id="confirm-backdrop">
+            <div class="modal" id="confirm-modal" style="max-width: 360px">
+                <div class="modal-header">
+                    <span class="modal-title" id="confirm-title">Confirm</span>
+                    <button
+                        class="modal-close"
+                        onclick="confirmClose()"
+                        aria-label="Close"
+                    >
+                        &#x2715;
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirm-message" style="line-height: 1.6"></p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-ghost" onclick="confirmClose()">
+                        Cancel
+                    </button>
+                    <button class="btn btn-danger" id="confirm-ok-btn">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ LOGIN MODAL ═══════════════════════════════════════════════════ -->
+        <div id="login-backdrop">
+            <div id="login-modal">
+                <div class="login-logo">
+                    <svg
+                        width="40"
+                        height="40"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <rect x="2" y="3" width="20" height="14" rx="2" />
+                        <path d="M8 21h8M12 17v4" />
+                    </svg>
+                    <h2>Agent Loft Admin</h2>
+                    <p>Enter your credentials to continue</p>
+                </div>
+                <div id="login-error"></div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input
+                            type="text"
+                            id="login-username"
+                            autocomplete="username"
+                            placeholder="admin"
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input
+                            type="password"
+                            id="login-password"
+                            autocomplete="current-password"
+                            placeholder="••••••••"
+                        />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button
+                        class="btn btn-primary"
+                        style="width: 100%"
+                        id="login-btn"
+                        onclick="authSubmit()"
+                    >
+                        Sign In
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ TOAST CONTAINER ════════════════════════════════════════════ -->
+        <div id="toast-container"></div>
+
+        <!-- ═══ SCRIPTS ════════════════════════════════════════════════════ -->
+        <script>
+            /* ─── Constants ──────────────────────────────────────────────────── */
+            const WEBHOOK_URL =
+                "https://n8n.agent-loft.com/webhook/4ad0c89f-ab8c-45ee-bad1-9321ce94dd64";
+
+            /* ─── State ──────────────────────────────────────────────────────── */
+            let dnsRecords = [];
+
+            /* ─── Auth helpers ───────────────────────────────────────────────── */
+            function getApiUrl() {
+                return localStorage.getItem("al_url") || WEBHOOK_URL;
+            }
+            function getBasicAuth() {
+                const u = localStorage.getItem("al_user") || "";
+                const p = localStorage.getItem("al_pass") || "";
+                if (!u && !p) return "";
+                return "Basic " + btoa(u + ":" + p);
+            }
+            function hasCredentials() {
+                return !!(
+                    localStorage.getItem("al_user") ||
+                    localStorage.getItem("al_pass")
+                );
+            }
+
+            function apiHeaders(extra = {}) {
+                const h = { "Content-Type": "application/json", ...extra };
+                const auth = getBasicAuth();
+                if (auth) h["Authorization"] = auth;
+                return h;
+            }
+
+            /* ─── Auth — login modal ─────────────────────────────────────────── */
+            function authCheck() {
+                if (!hasCredentials()) {
+                    authShowLogin();
+                } else {
+                    authHideLogin();
+                    updateSidebarUser();
+                    dnsLoadRecords();
+                }
+            }
+
+            function authShowLogin(message) {
+                const el = document.getElementById("login-error");
+                if (message) {
+                    el.textContent = message;
+                    el.style.display = "block";
+                } else {
+                    el.style.display = "none";
+                }
+                document
+                    .getElementById("login-backdrop")
+                    .classList.remove("hidden");
+                document.getElementById("login-username").value = "";
+                document.getElementById("login-password").value = "";
+                setTimeout(
+                    () => document.getElementById("login-username").focus(),
+                    80,
+                );
+            }
+
+            function authHideLogin() {
+                document
+                    .getElementById("login-backdrop")
+                    .classList.add("hidden");
+            }
+
+            async function authSubmit() {
+                const user = document
+                    .getElementById("login-username")
+                    .value.trim();
+                const pass = document.getElementById("login-password").value;
+                if (!user) {
+                    authShowLogin("Username is required.");
+                    return;
+                }
+
+                const btn = document.getElementById("login-btn");
+                btn.disabled = true;
+                btn.innerHTML = `<div class="spinner" style="width:14px;height:14px;"></div> Signing in…`;
+
+                try {
+                    const testHeader = "Basic " + btoa(user + ":" + pass);
+                    const res = await fetch(getApiUrl(), {
+                        headers: { Authorization: testHeader },
+                    });
+                    if (res.status === 401 || res.status === 403) {
+                        throw new Error("Invalid credentials.");
+                    }
+                    // Accept any non-auth error as "credentials OK"
+                    localStorage.setItem("al_user", user);
+                    localStorage.setItem("al_pass", pass);
+                    authHideLogin();
+                    updateSidebarUser();
+                    await dnsLoadRecords();
+                } catch (err) {
+                    authShowLogin(err.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = "Sign In";
+                }
+            }
+
+            function authLogout() {
+                localStorage.removeItem("al_user");
+                localStorage.removeItem("al_pass");
+                updateSidebarUser();
+                authShowLogin();
+                toast("Signed out", "info");
+            }
+
+            function updateSidebarUser() {
+                const u = localStorage.getItem("al_user") || "";
+                document.getElementById("sidebar-username").textContent =
+                    u || "Not signed in";
+            }
+
+            /* ─── Navigation ─────────────────────────────────────────────────── */
+            document
+                .querySelectorAll(".nav-item[data-section]")
+                .forEach((el) => {
+                    el.addEventListener("click", () => {
+                        const key = el.dataset.section;
+                        document
+                            .querySelectorAll(".nav-item")
+                            .forEach((n) => n.classList.remove("active"));
+                        el.classList.add("active");
+                        document
+                            .querySelectorAll(".section")
+                            .forEach((s) => s.classList.remove("active"));
+                        document
+                            .getElementById("section-" + key)
+                            ?.classList.add("active");
+
+                        const labels = {
+                            dns: "DNS Records",
+                            settings: "Settings",
+                            "coming-soon-firewall": "Firewall",
+                            "coming-soon-servers": "Servers",
+                            "coming-soon-ssl": "SSL / TLS",
+                        };
+                        document.getElementById("page-title").textContent =
+                            labels[key] || key;
+
+                        const topbar =
+                            document.getElementById("topbar-actions");
+                        topbar.style.display = key === "dns" ? "" : "none";
+                    });
+                });
+
+            /* ─── Toast ──────────────────────────────────────────────────────── */
+            function toast(msg, type = "info", duration = 3500) {
+                const el = document.createElement("div");
+                el.className = `toast toast-${type}`;
+                el.textContent = msg;
+                document.getElementById("toast-container").appendChild(el);
+                setTimeout(() => el.remove(), duration);
+            }
+
+            /* ─── Confirm dialog ─────────────────────────────────────────────── */
+            let confirmResolve = null;
+            function confirmDialog(title, message, okLabel = "Delete") {
+                document.getElementById("confirm-title").textContent = title;
+                document.getElementById("confirm-message").textContent =
+                    message;
+                document.getElementById("confirm-ok-btn").textContent = okLabel;
+                document
+                    .getElementById("confirm-backdrop")
+                    .classList.add("open");
+                return new Promise((res) => {
+                    confirmResolve = res;
+                });
+            }
+            function confirmClose(result = false) {
+                document
+                    .getElementById("confirm-backdrop")
+                    .classList.remove("open");
+                if (confirmResolve) {
+                    confirmResolve(result);
+                    confirmResolve = null;
+                }
+            }
+            document
+                .getElementById("confirm-ok-btn")
+                .addEventListener("click", () => confirmClose(true));
+            document
+                .getElementById("confirm-backdrop")
+                .addEventListener("click", (e) => {
+                    if (e.target === e.currentTarget) confirmClose(false);
+                });
+
+            /* ─── DNS — Load ─────────────────────────────────────────────────── */
+            async function dnsLoadRecords() {
+                const tbody = document.getElementById("dns-table-body");
+                tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="spinner"></div><p style="margin-top:12px;">Loading…</p></div></td></tr>`;
+                try {
+                    const res = await fetch(getApiUrl(), {
+                        headers: apiHeaders(),
+                    });
+                    if (res.status === 401 || res.status === 403) {
+                        authLogout();
+                        authShowLogin("Session expired. Please sign in again.");
+                        return;
+                    }
+                    if (!res.ok)
+                        throw new Error(
+                            `HTTP ${res.status}: ${res.statusText}`,
+                        );
+                    const json = await res.json();
+
+                    // Support both array-wrapped and direct response shapes
+                    const data = Array.isArray(json)
+                        ? (json[0]?.response ?? json)
+                        : (json?.response ?? []);
+                    dnsRecords = Array.isArray(data) ? data : [];
+                    dnsRender();
+                    toast(
+                        `Loaded ${dnsRecords.length} record${dnsRecords.length !== 1 ? "s" : ""}`,
+                        "success",
+                    );
+                } catch (err) {
+                    dnsRecords = [];
+                    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <p style="margin-top:10px; color:var(--danger);">${err.message}</p>
+    </div></td></tr>`;
+                    toast(
+                        "Failed to load DNS records: " + err.message,
+                        "error",
+                    );
+                }
+            }
+
+            /* ─── DNS — Render table ─────────────────────────────────────────── */
+            function dnsRender() {
+                const search = document
+                    .getElementById("dns-search")
+                    .value.toLowerCase();
+                const typeFilter = document
+                    .getElementById("dns-filter-type")
+                    .value.toUpperCase();
+
+                const filtered = dnsRecords.filter((r) => {
+                    const matchType = !typeFilter || r.type === typeFilter;
+                    const content = (r.records || [])
+                        .map((x) => x.content)
+                        .join(" ")
+                        .toLowerCase();
+                    const matchSearch =
+                        !search ||
+                        r.name.toLowerCase().includes(search) ||
+                        content.includes(search) ||
+                        r.type.toLowerCase().includes(search);
+                    return matchType && matchSearch;
+                });
+
+                document.getElementById("dns-record-count").textContent =
+                    filtered.length === dnsRecords.length
+                        ? `${dnsRecords.length} record${dnsRecords.length !== 1 ? "s" : ""}`
+                        : `${filtered.length} / ${dnsRecords.length} records`;
+
+                const tbody = document.getElementById("dns-table-body");
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/>
+      </svg>
+      <p>No records found</p>
+    </div></td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = filtered
+                    .map((r) => {
+                        const records = r.records || [];
+                        const content = records
+                            .map(
+                                (x) =>
+                                    `<span class="mono">${escHtml(x.content)}</span>`,
+                            )
+                            .join("<br>");
+                        const disabled = records.some((x) => x.is_disabled);
+                        const statusHtml = disabled
+                            ? `<span class="status-dot dot-disabled"></span>Disabled`
+                            : `<span class="status-dot dot-enabled"></span>Enabled`;
+
+                        return `<tr>
+      <td><span class="mono">${escHtml(r.name)}</span></td>
+      <td><span class="badge badge-${r.type.toLowerCase()}">${escHtml(r.type)}</span></td>
+      <td>${content}</td>
+      <td class="text-muted">${formatTTL(r.ttl)}</td>
+      <td style="white-space:nowrap;">${statusHtml}</td>
+      <td>
+        <div class="flex-gap">
+          <button class="btn btn-ghost btn-sm" onclick="dnsOpenEdit(${escAttr(JSON.stringify(r))})">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Edit
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="dnsDeleteRecord(${escAttr(JSON.stringify({ name: r.name, type: r.type }))})">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+            Delete
+          </button>
+        </div>
+      </td>
+    </tr>`;
+                    })
+                    .join("");
+            }
+
+            /* ─── DNS — Delete ───────────────────────────────────────────────── */
+            async function dnsDeleteRecord(recordJson) {
+                const record =
+                    typeof recordJson === "string"
+                        ? JSON.parse(recordJson)
+                        : recordJson;
+                const ok = await confirmDialog(
+                    "Delete DNS Record",
+                    `Delete the ${record.type} record "${record.name}"? This cannot be undone.`,
+                );
+                if (!ok) return;
+
+                try {
+                    const res = await fetch(getApiUrl(), {
+                        method: "DELETE",
+                        headers: apiHeaders(),
+                        body: JSON.stringify({
+                            name: record.name,
+                            type: record.type,
+                        }),
+                    });
+                    if (res.status === 401 || res.status === 403) {
+                        authLogout();
+                        authShowLogin("Session expired.");
+                        return;
+                    }
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    toast(
+                        `Record "${record.name}" (${record.type}) deleted`,
+                        "success",
+                    );
+                    await dnsLoadRecords();
+                } catch (err) {
+                    toast("Delete failed: " + err.message, "error");
+                }
+            }
+
+            /* ─── DNS — Modal (create/edit) ──────────────────────────────────── */
+            function dnsOpenCreate() {
+                document.getElementById("dns-modal-title").textContent =
+                    "New DNS Record";
+                document.getElementById("dns-modal-mode").value = "create";
+                document.getElementById("dns-modal-orig-name").value = "";
+                document.getElementById("dns-modal-orig-type").value = "";
+                document.getElementById("dns-modal-name").value = "";
+                document.getElementById("dns-modal-type").value = "A";
+                document.getElementById("dns-modal-content").value = "";
+                document.getElementById("dns-modal-ttl").value = "3600";
+                document.getElementById("dns-modal-disabled").value = "false";
+                document.getElementById("dns-modal-submit").innerHTML = `
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    Create Record`;
+                document
+                    .getElementById("dns-modal-backdrop")
+                    .classList.add("open");
+                document.getElementById("dns-modal-name").focus();
+            }
+
+            function dnsOpenEdit(recordJson) {
+                const r =
+                    typeof recordJson === "string"
+                        ? JSON.parse(recordJson)
+                        : recordJson;
+                const records = r.records || [];
+                const disabled = records.some((x) => x.is_disabled);
+                const content = records.map((x) => x.content).join("\n");
+
+                document.getElementById("dns-modal-title").textContent =
+                    `Edit — ${r.name} (${r.type})`;
+                document.getElementById("dns-modal-mode").value = "update";
+                document.getElementById("dns-modal-orig-name").value = r.name;
+                document.getElementById("dns-modal-orig-type").value = r.type;
+                document.getElementById("dns-modal-name").value = r.name;
+                document.getElementById("dns-modal-type").value = r.type;
+                document.getElementById("dns-modal-content").value = content;
+                document.getElementById("dns-modal-ttl").value = r.ttl;
+                document.getElementById("dns-modal-disabled").value = disabled
+                    ? "true"
+                    : "false";
+                document.getElementById("dns-modal-submit").innerHTML = `
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    Save Changes`;
+                document
+                    .getElementById("dns-modal-backdrop")
+                    .classList.add("open");
+                document.getElementById("dns-modal-content").focus();
+            }
+
+            function dnsCloseModal() {
+                document
+                    .getElementById("dns-modal-backdrop")
+                    .classList.remove("open");
+            }
+            document
+                .getElementById("dns-modal-backdrop")
+                .addEventListener("click", (e) => {
+                    if (e.target === e.currentTarget) dnsCloseModal();
+                });
+
+            async function dnsSubmitModal() {
+                const mode = document.getElementById("dns-modal-mode").value;
+                const name = document
+                    .getElementById("dns-modal-name")
+                    .value.trim();
+                const type = document.getElementById("dns-modal-type").value;
+                const content = document
+                    .getElementById("dns-modal-content")
+                    .value.trim();
+                const ttl =
+                    parseInt(
+                        document.getElementById("dns-modal-ttl").value,
+                        10,
+                    ) || 3600;
+                const disabled =
+                    document.getElementById("dns-modal-disabled").value ===
+                    "true";
+                const origName = document.getElementById(
+                    "dns-modal-orig-name",
+                ).value;
+                const origType = document.getElementById(
+                    "dns-modal-orig-type",
+                ).value;
+
+                if (!name) {
+                    toast("Name is required", "warning");
+                    return;
+                }
+                if (!content) {
+                    toast("Content is required", "warning");
+                    return;
+                }
+
+                const payload = {
+                    action: mode,
+                    name,
+                    type,
+                    content,
+                    ttl,
+                    is_disabled: disabled,
+                    ...(mode === "update"
+                        ? { orig_name: origName, orig_type: origType }
+                        : {}),
+                };
+
+                const btn = document.getElementById("dns-modal-submit");
+                btn.disabled = true;
+                const origLabel = btn.innerHTML;
+                btn.innerHTML = `<div class="spinner" style="width:14px;height:14px;"></div> Saving…`;
+
+                try {
+                    const res = await fetch(getApiUrl(), {
+                        method: "POST",
+                        headers: apiHeaders(),
+                        body: JSON.stringify(payload),
+                    });
+                    if (res.status === 401 || res.status === 403) {
+                        authLogout();
+                        authShowLogin("Session expired.");
+                        return;
+                    }
+                    if (!res.ok)
+                        throw new Error(
+                            `HTTP ${res.status}: ${res.statusText}`,
+                        );
+                    toast(
+                        mode === "create"
+                            ? `Record "${name}" created`
+                            : `Record "${name}" updated`,
+                        "success",
+                    );
+                    dnsCloseModal();
+                    await dnsLoadRecords();
+                } catch (err) {
+                    toast(
+                        (mode === "create" ? "Create" : "Update") +
+                            " failed: " +
+                            err.message,
+                        "error",
+                    );
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = origLabel;
+                }
+            }
+
+            /* ─── Settings ───────────────────────────────────────────────────── */
+            function settingsSave() {
+                const url = document.getElementById("setting-url").value.trim();
+                if (url) {
+                    localStorage.setItem("al_url", url);
+                    toast("Webhook URL saved", "success");
+                } else toast("Enter a URL to save", "warning");
+            }
+
+            function settingsUpdateCredentials() {
+                const user = document
+                    .getElementById("setting-username")
+                    .value.trim();
+                const pass = document.getElementById("setting-password").value;
+                if (!user && !pass) {
+                    toast("Enter new credentials to update", "warning");
+                    return;
+                }
+                if (user) localStorage.setItem("al_user", user);
+                if (pass) localStorage.setItem("al_pass", pass);
+                document.getElementById("setting-username").value = "";
+                document.getElementById("setting-password").value = "";
+                updateSidebarUser();
+                toast("Credentials updated", "success");
+            }
+
+            async function settingsTest() {
+                try {
+                    const res = await fetch(getApiUrl(), {
+                        headers: apiHeaders(),
+                    });
+                    if (res.status === 401 || res.status === 403)
+                        toast("Auth failed — check credentials", "error");
+                    else if (res.ok)
+                        toast("Connection OK — HTTP " + res.status, "success");
+                    else toast("Reachable but HTTP " + res.status, "warning");
+                } catch (err) {
+                    toast("Connection failed: " + err.message, "error");
+                }
+            }
+
+            function settingsLoad() {
+                const url = localStorage.getItem("al_url");
+                if (url) document.getElementById("setting-url").value = url;
+            }
+
+            /* ─── Helpers ────────────────────────────────────────────────────── */
+            function escHtml(s) {
+                return String(s)
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;");
+            }
+            function escAttr(s) {
+                return `'${String(s).replace(/'/g, "&apos;")}'`;
+            }
+            function formatTTL(s) {
+                if (!s && s !== 0) return "—";
+                if (s < 60) return `${s}s`;
+                if (s < 3600) return `${Math.round(s / 60)}m`;
+                if (s < 86400) return `${Math.round(s / 3600)}h`;
+                return `${Math.round(s / 86400)}d`;
+            }
+
+            /* ─── Login: submit on Enter ─────────────────────────────────────── */
+            document
+                .getElementById("login-password")
+                .addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") authSubmit();
+                });
+            document
+                .getElementById("login-username")
+                .addEventListener("keydown", (e) => {
+                    if (e.key === "Enter")
+                        document.getElementById("login-password").focus();
+                });
+
+            /* ─── Init ───────────────────────────────────────────────────────── */
+            settingsLoad();
+            authCheck();
+        </script>
+    </body>
+</html>
