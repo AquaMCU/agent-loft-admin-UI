@@ -1271,7 +1271,7 @@ async function keysLoadRecords() {
 function keysRender() {
   const tbody = document.getElementById("keys-table-body");
   if (!keysData.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><p>No keys found.</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><p>No keys found.</p></div></td></tr>`;
     return;
   }
   tbody.innerHTML = keysData
@@ -1292,8 +1292,9 @@ function keysRender() {
           ? `$${Number(k.usage_monthly).toFixed(4)}`
           : `—`;
       const created = k.created_at ? formatDate(k.created_at) : `—`;
+      const name = escHtml(k.name);
       return `<tr>
-      <td>${escHtml(k.name)}</td>
+      <td>${name}</td>
       <td><code style="font-size:12px;">${escHtml(k.label)}</code></td>
       <td>${statusBadge}</td>
       <td>${limit}</td>
@@ -1301,9 +1302,48 @@ function keysRender() {
       <td>${reset}</td>
       <td>${usage}</td>
       <td>${created}</td>
+      <td>
+        <button class="btn btn-danger btn-sm"
+          data-name="${name}"
+          onclick="keysDelete(this)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+          Delete
+        </button>
+      </td>
     </tr>`;
     })
     .join("");
+}
+
+/* ─── Keys — Delete ──────────────────────────────────────────── */
+async function keysDelete(btn) {
+  const name = btn.dataset.name;
+  const ok = await confirmDialog(
+    "Delete API Key",
+    `Delete key "${name}"? This cannot be undone.`,
+  );
+  if (!ok) return;
+
+  try {
+    const res = await fetch(KEYS_URL, {
+      method: "DELETE",
+      headers: apiHeaders(),
+      body: JSON.stringify({ name }),
+    });
+    if (res.status === 401 || res.status === 403) {
+      authLogout();
+      authShowLogin("Session expired.");
+      return;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    toast(`Key "${name}" deleted`, "success");
+    await keysLoadRecords();
+  } catch (err) {
+    toast("Delete failed: " + err.message, "error");
+  }
 }
 
 /* ─── Init ────────────────────────────────────────────────────────── */
