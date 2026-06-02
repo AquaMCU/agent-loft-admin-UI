@@ -257,7 +257,11 @@ function dnsRender() {
     .getElementById("dns-filter-type")
     .value.toUpperCase();
 
+  const HIDDEN_NAMES = ["fr", "n8n", "@"];
+
   const filtered = dnsRecords.filter((r) => {
+    const name = r.name.toLowerCase();
+    if (HIDDEN_NAMES.includes(name)) return false;
     const matchType = !typeFilter || r.type === typeFilter;
     const content = (r.records || [])
       .map((x) => x.content)
@@ -265,7 +269,7 @@ function dnsRender() {
       .toLowerCase();
     const matchSearch =
       !search ||
-      r.name.toLowerCase().includes(search) ||
+      name.includes(search) ||
       content.includes(search) ||
       r.type.toLowerCase().includes(search);
     return matchType && matchSearch;
