@@ -579,6 +579,33 @@
 
                     <!-- ─── Backup Section ─────────────────────────────────────── -->
                     <div class="section" id="section-backup">
+                        <!-- Search bar -->
+                        <div
+                            class="card"
+                            style="padding: 14px 20px; margin-bottom: 16px"
+                        >
+                            <div
+                                class="form-row"
+                                style="
+                                    flex-wrap: nowrap;
+                                    gap: 10px;
+                                    align-items: center;
+                                "
+                            >
+                                <div
+                                    class="form-group"
+                                    style="flex: 1; min-width: 140px"
+                                >
+                                    <input
+                                        type="text"
+                                        id="backup-search"
+                                        placeholder="Search by name or ID…"
+                                        oninput="backupRender()"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="card">
                             <div class="card-header">
                                 <span class="card-title">

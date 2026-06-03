@@ -776,13 +776,28 @@ async function backupLoadRecords() {
   }
 }
 
-/* ─── Backup — Render table ─────────────────────────────────── */
+/* ─── Backup — Render table ────────────────────────────── */
+const BACKUP_HIDDEN = ["4server", "notebook", "office"];
+
 function backupRender() {
+  const search = (
+    document.getElementById("backup-search")?.value ?? ""
+  ).toLowerCase();
+
+  const filtered = backupRecords.filter((r) => {
+    const name = (r.name ?? "").toLowerCase();
+    if (BACKUP_HIDDEN.some((h) => name.includes(h))) return false;
+    if (!search) return true;
+    return name.includes(search) || (r.id ?? "").toLowerCase().includes(search);
+  });
+
   document.getElementById("backup-record-count").textContent =
-    `${backupRecords.length} repositor${backupRecords.length !== 1 ? "ies" : "y"}`;
+    filtered.length === backupRecords.length
+      ? `${filtered.length} repositor${filtered.length !== 1 ? "ies" : "y"}`
+      : `${filtered.length} / ${backupRecords.length} repositories`;
 
   const tbody = document.getElementById("backup-table-body");
-  if (backupRecords.length === 0) {
+  if (filtered.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -793,7 +808,7 @@ function backupRender() {
     return;
   }
 
-  tbody.innerHTML = backupRecords
+  tbody.innerHTML = filtered
     .map((r) => {
       const region = escHtml(r.region ?? "");
       const regionClass = ["eu", "us"].includes(region)
