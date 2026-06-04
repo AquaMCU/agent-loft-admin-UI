@@ -9,6 +9,8 @@ const SERVERS_URL =
   "https://n8n.agent-loft.com/webhook/78c0c2b8-e497-4d44-8f26-fec34217513c";
 const KEYS_URL =
   "https://n8n.agent-loft.com/webhook/a001374f-d8c0-4430-9b47-9f1e9ab134c3";
+const AUTH_URL =
+  "https://n8n.agent-loft.com/webhook/e256310a-6627-45ba-a221-599751943fe6";
 
 /* ─── State ──────────────────────────────────────────────────────── */
 let dnsRecords = [];
@@ -18,40 +20,50 @@ let backupRecords = [];
 let serversData = [];
 let currentServerIdx = 0;
 let keysData = [];
+let currentSession = null;
+let currentEmail = null;
 
-/* ─── Auth helpers ───────────────────────────────────────────────── */
+/* ─── Cookie helpers ─────────────────────────────────────────────── */
+function setCookie(name, value, days) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Strict`;
+}
+function getCookie(name) {
+  return document.cookie.split("; ").reduce((acc, c) => {
+    const [k, ...rest] = c.split("=");
+    return k === name ? decodeURIComponent(rest.join("=")) : acc;
+  }, null);
+}
+function deleteCookie(name) {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Strict`;
+}
+
+/* ─── Authenticated fetch wrapper ────────────────────────────────── */
+async function apiFetch(url, options = {}) {
+  const headers = {
+    ...(options.headers || {}),
+    ...(currentSession ? { "X-Session-Id": currentSession } : {}),
+  };
+  const res = await fetch(url, { ...options, headers });
+  if (res.status === 401) {
+    deleteCookie("al_session");
+    deleteCookie("al_email");
+    localStorage.removeItem("al_email");
+    location.reload();
+  }
+  return res;
+}
+
+/* ─── API helpers ────────────────────────────────────────────────── */
 function getApiUrl() {
   return localStorage.getItem("al_url") || WEBHOOK_URL;
 }
-function getBasicAuth() {
-  const u = localStorage.getItem("al_user") || "";
-  const p = localStorage.getItem("al_pass") || "";
-  if (!u && !p) return "";
-  return "Basic " + btoa(u + ":" + p);
-}
-function hasCredentials() {
-  return !!(localStorage.getItem("al_user") || localStorage.getItem("al_pass"));
+function apiHeaders() {
+  return { "Content-Type": "application/json" };
 }
 
-function apiHeaders(extra = {}) {
-  const h = { "Content-Type": "application/json", ...extra };
-  const auth = getBasicAuth();
-  if (auth) h["Authorization"] = auth;
-  return h;
-}
-
-/* ─── Auth — login modal ─────────────────────────────────────────── */
-function authCheck() {
-  if (!hasCredentials()) {
-    authShowLogin();
-  } else {
-    authHideLogin();
-    updateSidebarUser();
-    dnsLoadRecords();
-  }
-}
-
-function authShowLogin(message) {
+/* ─── Show / hide app shell ──────────────────────────────────────── */
+function showAuth(message) {
   const el = document.getElementById("login-error");
   if (message) {
     el.textContent = message;
@@ -60,20 +72,34 @@ function authShowLogin(message) {
     el.style.display = "none";
   }
   document.getElementById("login-backdrop").classList.remove("hidden");
-  document.getElementById("login-username").value = "";
+  document.getElementById("login-email").value = "";
   document.getElementById("login-password").value = "";
-  setTimeout(() => document.getElementById("login-username").focus(), 80);
+  setTimeout(() => document.getElementById("login-email").focus(), 80);
 }
-
-function authHideLogin() {
+function showApp() {
   document.getElementById("login-backdrop").classList.add("hidden");
+  updateSidebarUser();
+}
+function loadData() {
+  dnsLoadRecords();
 }
 
-async function authSubmit() {
-  const user = document.getElementById("login-username").value.trim();
-  const pass = document.getElementById("login-password").value;
-  if (!user) {
-    authShowLogin("Username is required.");
+/* ─── Email validation ───────────────────────────────────────────── */
+function isValidEmail(s) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
+
+/* ─── Sign In ────────────────────────────────────────────────────── */
+async function doSignIn() {
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+
+  if (!isValidEmail(email)) {
+    showAuth("Please enter a valid email address.");
+    return;
+  }
+  if (!password) {
+    showAuth("Password is required.");
     return;
   }
 
@@ -82,39 +108,63 @@ async function authSubmit() {
   btn.innerHTML = `<div class="spinner" style="width:14px;height:14px;"></div> Signing in…`;
 
   try {
-    const testHeader = "Basic " + btoa(user + ":" + pass);
-    const res = await fetch(getApiUrl(), {
-      headers: { Authorization: testHeader },
+    const res = await fetch(AUTH_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     });
-    if (res.status === 401 || res.status === 403) {
-      throw new Error("Invalid credentials.");
-    }
-    // Accept any non-auth error as "credentials OK"
-    localStorage.setItem("al_user", user);
-    localStorage.setItem("al_pass", pass);
-    authHideLogin();
-    updateSidebarUser();
-    await dnsLoadRecords();
+    if (!res.ok) throw new Error("Account not found or incorrect password.");
+
+    const data = await res.json();
+    const raw = Array.isArray(data) ? data[0] : data;
+    const item = raw && "json" in raw ? raw.json : raw;
+    const sessionId = item?.sessionid;
+    if (!sessionId) throw new Error("Authentication failed. Please try again.");
+
+    currentSession = sessionId;
+    currentEmail = email;
+    setCookie("al_session", sessionId, 30);
+    setCookie("al_email", email, 30);
+
+    showApp();
+    loadData();
   } catch (err) {
-    authShowLogin(err.message);
+    showAuth(err.message);
   } finally {
     btn.disabled = false;
     btn.innerHTML = "Sign In";
   }
 }
 
-function authLogout() {
-  localStorage.removeItem("al_user");
-  localStorage.removeItem("al_pass");
-  updateSidebarUser();
-  authShowLogin();
+/* ─── Sign Out ───────────────────────────────────────────────────── */
+function doSignOut() {
+  if (currentSession) {
+    fetch(AUTH_URL, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Session-Id": currentSession,
+      },
+      body: JSON.stringify({ sessionid: currentSession }),
+    }).catch(() => {});
+  }
+
+  deleteCookie("al_session");
+  deleteCookie("al_email");
+  localStorage.removeItem("al_email");
+
+  currentSession = null;
+  currentEmail = null;
+
+  showAuth();
   toast("Signed out", "info");
 }
 
 function updateSidebarUser() {
-  const u = localStorage.getItem("al_user") || "";
   document.getElementById("sidebar-username").textContent =
-    u || "Not signed in";
+    currentEmail || "Not signed in";
+  const settingsEl = document.getElementById("settings-session-email");
+  if (settingsEl) settingsEl.textContent = currentEmail || "—";
 }
 
 /* ─── Navigation ─────────────────────────────────────────────────── */
@@ -219,14 +269,9 @@ async function dnsLoadRecords() {
   const tbody = document.getElementById("dns-table-body");
   tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="spinner"></div><p style="margin-top:12px;">Loading…</p></div></td></tr>`;
   try {
-    const res = await fetch(getApiUrl(), {
+    const res = await apiFetch(getApiUrl(), {
       headers: apiHeaders(),
     });
-    if (res.status === 401 || res.status === 403) {
-      authLogout();
-      authShowLogin("Session expired. Please sign in again.");
-      return;
-    }
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     const json = await res.json();
 
@@ -338,7 +383,7 @@ async function dnsDeleteRecord(btn) {
   if (!ok) return;
 
   try {
-    const res = await fetch(getApiUrl(), {
+    const res = await apiFetch(getApiUrl(), {
       method: "DELETE",
       headers: apiHeaders(),
       body: JSON.stringify({
@@ -346,11 +391,6 @@ async function dnsDeleteRecord(btn) {
         type: record.type,
       }),
     });
-    if (res.status === 401 || res.status === 403) {
-      authLogout();
-      authShowLogin("Session expired.");
-      return;
-    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     toast(`Record "${record.name}" (${record.type}) deleted`, "success");
     await dnsLoadRecords();
@@ -381,7 +421,7 @@ async function dnsAddRecord() {
   btn.innerHTML = `<div class="spinner" style="width:14px;height:14px;"></div> Adding…`;
 
   try {
-    const res = await fetch(getApiUrl(), {
+    const res = await apiFetch(getApiUrl(), {
       method: "POST",
       headers: apiHeaders(),
       body: JSON.stringify({
@@ -393,11 +433,6 @@ async function dnsAddRecord() {
         is_disabled: false,
       }),
     });
-    if (res.status === 401 || res.status === 403) {
-      authLogout();
-      authShowLogin("Session expired.");
-      return;
-    }
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     toast(`Record "${name}" (${type}) added`, "success");
     document.getElementById("add-name").value = "";
@@ -421,29 +456,12 @@ function settingsSave() {
   } else toast("Enter a URL to save", "warning");
 }
 
-function settingsUpdateCredentials() {
-  const user = document.getElementById("setting-username").value.trim();
-  const pass = document.getElementById("setting-password").value;
-  if (!user && !pass) {
-    toast("Enter new credentials to update", "warning");
-    return;
-  }
-  if (user) localStorage.setItem("al_user", user);
-  if (pass) localStorage.setItem("al_pass", pass);
-  document.getElementById("setting-username").value = "";
-  document.getElementById("setting-password").value = "";
-  updateSidebarUser();
-  toast("Credentials updated", "success");
-}
-
 async function settingsTest() {
   try {
-    const res = await fetch(getApiUrl(), {
+    const res = await apiFetch(getApiUrl(), {
       headers: apiHeaders(),
     });
-    if (res.status === 401 || res.status === 403)
-      toast("Auth failed — check credentials", "error");
-    else if (res.ok) toast("Connection OK — HTTP " + res.status, "success");
+    if (res.ok) toast("Connection OK — HTTP " + res.status, "success");
     else toast("Reachable but HTTP " + res.status, "warning");
   } catch (err) {
     toast("Connection failed: " + err.message, "error");
@@ -484,9 +502,9 @@ document.getElementById("add-name").addEventListener("keydown", (e) => {
 
 /* ─── Login: submit on Enter ─────────────────────────────────────── */
 document.getElementById("login-password").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") authSubmit();
+  if (e.key === "Enter") doSignIn();
 });
-document.getElementById("login-username").addEventListener("keydown", (e) => {
+document.getElementById("login-email").addEventListener("keydown", (e) => {
   if (e.key === "Enter") document.getElementById("login-password").focus();
 });
 
@@ -503,12 +521,7 @@ async function instancesLoadRecords() {
   const tbody = document.getElementById("inst-table-body");
   tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="spinner"></div><p style="margin-top:12px;">Loading…</p></div></td></tr>`;
   try {
-    const res = await fetch(INSTANCES_URL, { headers: apiHeaders() });
-    if (res.status === 401 || res.status === 403) {
-      authLogout();
-      authShowLogin("Session expired. Please sign in again.");
-      return;
-    }
+    const res = await apiFetch(INSTANCES_URL, { headers: apiHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     const json = await res.json();
     // Normalise: [{data:[...]}, ...], plain array, {data:[...]}, or single object
@@ -650,16 +663,11 @@ async function instancesDelete(btn) {
   if (!ok) return;
 
   try {
-    const res = await fetch(INSTANCES_URL, {
+    const res = await apiFetch(INSTANCES_URL, {
       method: "DELETE",
       headers: apiHeaders(),
       body: JSON.stringify({ uuid }),
     });
-    if (res.status === 401 || res.status === 403) {
-      authLogout();
-      authShowLogin("Session expired.");
-      return;
-    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     toast(`Instance “${agent}” deleted`, "success");
     await instancesLoadRecords();
@@ -713,7 +721,7 @@ async function instancesSaveEdit() {
   btn.innerHTML = `<div class="spinner" style="width:14px;height:14px;"></div> Saving…`;
 
   try {
-    const res = await fetch(INSTANCES_URL, {
+    const res = await apiFetch(INSTANCES_URL, {
       method: "PUT",
       headers: apiHeaders(),
       body: JSON.stringify({
@@ -723,11 +731,6 @@ async function instancesSaveEdit() {
         cpu,
       }),
     });
-    if (res.status === 401 || res.status === 403) {
-      authLogout();
-      authShowLogin("Session expired.");
-      return;
-    }
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     toast(`Instance “${instancesEditTarget.uuid}” updated`, "success");
     instancesCloseEdit();
@@ -750,14 +753,10 @@ async function backupLoadRecords() {
   const tbody = document.getElementById("backup-table-body");
   tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="spinner"></div><p style="margin-top:12px;">Loading…</p></div></td></tr>`;
   try {
-    const res = await fetch(BACKUP_URL, { headers: apiHeaders() });
-    if (res.status === 401 || res.status === 403) {
-      authLogout();
-      authShowLogin("Session expired. Please sign in again.");
-      return;
-    }
+    const res = await apiFetch(BACKUP_URL, { headers: apiHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     const json = await res.json();
+    // Normalise:
     // Shape: [{data:{repoList:[...]}}]
     const raw = Array.isArray(json) ? json[0] : json;
     backupRecords = raw?.data?.repoList ?? [];
@@ -849,16 +848,11 @@ async function backupDelete(btn) {
   if (!ok) return;
 
   try {
-    const res = await fetch(BACKUP_URL, {
+    const res = await apiFetch(BACKUP_URL, {
       method: "DELETE",
       headers: apiHeaders(),
       body: JSON.stringify({ id }),
     });
-    if (res.status === 401 || res.status === 403) {
-      authLogout();
-      authShowLogin("Session expired.");
-      return;
-    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     toast(`Repository “${name}” deleted`, "success");
     await backupLoadRecords();
@@ -893,12 +887,7 @@ async function serversLoadData() {
   document.getElementById("server-dashboard").innerHTML =
     `<div class="empty-state"><div class="spinner"></div><p style="margin-top:12px">Loading…</p></div>`;
   try {
-    const res = await fetch(SERVERS_URL, { headers: apiHeaders() });
-    if (res.status === 401 || res.status === 403) {
-      authLogout();
-      authShowLogin("Session expired. Please sign in again.");
-      return;
-    }
+    const res = await apiFetch(SERVERS_URL, { headers: apiHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     const json = await res.json();
     const raw = Array.isArray(json) ? json : [json];
@@ -1267,7 +1256,7 @@ async function keysLoadRecords() {
   const tbody = document.getElementById("keys-table-body");
   tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="spinner"></div><p style="margin-top:12px;">Loading…</p></div></td></tr>`;
   try {
-    const res = await fetch(KEYS_URL, { headers: apiHeaders() });
+    const res = await apiFetch(KEYS_URL, { headers: apiHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     // Support both [{data:[...]}, ...] and {data:[...]} and flat array
@@ -1347,16 +1336,11 @@ async function keysDelete(btn) {
   if (!ok) return;
 
   try {
-    const res = await fetch(KEYS_URL, {
+    const res = await apiFetch(KEYS_URL, {
       method: "DELETE",
       headers: apiHeaders(),
       body: JSON.stringify({ name }),
     });
-    if (res.status === 401 || res.status === 403) {
-      authLogout();
-      authShowLogin("Session expired.");
-      return;
-    }
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     toast(`Key "${name}" deleted`, "success");
     await keysLoadRecords();
@@ -1367,4 +1351,12 @@ async function keysDelete(btn) {
 
 /* ─── Init ────────────────────────────────────────────────────────── */
 settingsLoad();
-authCheck();
+const _boot = getCookie("al_session");
+if (_boot) {
+  currentSession = _boot;
+  currentEmail = getCookie("al_email") || "";
+  showApp();
+  loadData();
+} else {
+  showAuth();
+}
