@@ -817,7 +817,7 @@ function backupRender() {
   <td><strong>${escHtml(r.name)}</strong></td>
   <td><span class="mono">${escHtml(r.id)}</span></td>
   <td><span class="badge ${regionClass}">${region.toUpperCase()}</span></td>
-  <td>${formatBytes(r.currentUsage)}</td>
+  <td style="text-align:right">${formatBytes(r.currentUsage)}</td>
   <td class="text-muted">${formatDate(r.lastModified)}</td>
   <td class="text-muted">${formatDate(r.createdAt)}</td>
   <td>
@@ -862,12 +862,11 @@ async function backupDelete(btn) {
 }
 
 /* ─── Backup — Helpers ─────────────────────────────────────── */
-// currentUsage appears to be in KB
-function formatBytes(kb) {
-  if (kb == null) return "—";
-  if (kb < 1024) return `${kb.toFixed(1)} KB`;
-  if (kb < 1024 * 1024) return `${(kb / 1024).toFixed(1)} MB`;
-  return `${(kb / (1024 * 1024)).toFixed(2)} GB`;
+// currentUsage is in MB
+function formatBytes(mb) {
+  if (mb == null) return "—";
+  if (mb < 1024) return `${mb.toFixed(1)} MB`;
+  return `${(mb / 1024).toFixed(2)} GB`;
 }
 function formatDate(iso) {
   if (!iso) return "—";
