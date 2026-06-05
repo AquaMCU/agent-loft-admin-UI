@@ -302,7 +302,7 @@ function dnsRender() {
     .getElementById("dns-filter-type")
     .value.toUpperCase();
 
-  const HIDDEN_NAMES = ["fr", "n8n", "@"];
+  const HIDDEN_NAMES = ["fr", "n8n", "admin", "@"];
 
   const filtered = dnsRecords.filter((r) => {
     const name = r.name.toLowerCase();
